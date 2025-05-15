@@ -1,12 +1,16 @@
 import { router } from "expo-router";
-import { Image, Text, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/Button";
 
 export default function OnboardingScreen() {
-  const handleGetStarted = () => {
+  const handleViewerLogin = () => {
     router.push("/login");
+  };
+
+  const handleScorerLogin = () => {
+    router.push("/scorer-login");
   };
 
   return (
@@ -40,12 +44,45 @@ export default function OnboardingScreen() {
             Stay updated with live scores and exciting highlights from cricket,
             football, and racquet sports.
           </Text>
+
           <Button
-            label="Get Started"
+            label="Login as Viewer"
             variant="primary"
-            onPress={handleGetStarted}
-            style={{ backgroundColor: "#FF6B00", height: 56 }}
+            onPress={handleViewerLogin}
+            style={{ backgroundColor: "#FF6B00", height: 56, marginBottom: 16 }}
           />
+
+          <Button
+            label="Login as Scorer"
+            variant="secondary"
+            onPress={handleScorerLogin}
+            style={{
+              backgroundColor: "transparent",
+              borderColor: "#FF6B00",
+              borderWidth: 1,
+              height: 56,
+            }}
+            textStyle={{ color: "#FF6B00" }}
+          />
+
+          <View className="flex-row justify-center mt-6">
+            <Text className="text-gray-400 text-sm">
+              Don't have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/signup")}>
+              <Text className="text-orange-500 text-sm font-medium">
+                Sign up as Viewer
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-row justify-center mt-2">
+            <TouchableOpacity onPress={() => router.push("/scorer-signup")}>
+              <Text className="text-orange-500 text-sm font-medium">
+                Sign up as Scorer
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </SafeAreaView>

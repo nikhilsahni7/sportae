@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs, usePathname } from "expo-router";
 import React, { useEffect } from "react";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,8 +11,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const screenWidth = Dimensions.get("window").width;
+import { useAuth } from "../../context/AuthContext";
 
 // Component for tab button to properly handle hooks
 const TabButton = ({
@@ -78,6 +77,15 @@ const TabButton = ({
 
 const CustomTabBar = ({ state, descriptors, navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+
+  // Determine if the user is a scorer
+  const isScorer = user?.role === "scorer";
+
+  // Define tabs based on role
+  const tabsToShow = isScorer
+    ? ["scorer-home", "chat", "profile"] // Scorer tabs
+    : ["index", "search", "chat", "stats", "profile"]; // Viewer tabs
 
   return (
     <View
@@ -92,51 +100,58 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
       >
         <BlurView intensity={25} tint="dark" style={styles.blurBackground}>
           <View style={styles.tabBarContainer}>
-            {state.routes.map((route: any, index: number) => {
-              const { options } = descriptors[route.key];
-              const label = options.title ?? route.name;
-              const isFocused = state.index === index;
+            {state.routes
+              .filter((route: any) => tabsToShow.includes(route.name))
+              .map((route: any, index: number) => {
+                const { options } = descriptors[route.key];
+                const label = options.title ?? route.name;
+                const isFocused = state.index === index;
 
-              const onPress = () => {
-                const event = navigation.emit({
-                  type: "tabPress",
-                  target: route.key,
-                  canPreventDefault: true,
-                });
+                const onPress = () => {
+                  const event = navigation.emit({
+                    type: "tabPress",
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
 
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
+                  if (!isFocused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                };
+
+                // Get the icon name based on route
+                let iconName;
+                if (route.name === "index" || route.name === "scorer-home") {
+                  iconName = "home";
+                } else if (route.name === "search") {
+                  iconName = "search";
+                } else if (route.name === "chat") {
+                  iconName = "chatbubble";
+                } else if (route.name === "stats") {
+                  iconName = "stats-chart";
+                } else if (route.name === "profile") {
+                  iconName = "person";
                 }
-              };
 
-              // Get the icon name based on route
-              let iconName;
-              if (route.name === "index") {
-                iconName = "home";
-              } else if (route.name === "search") {
-                iconName = "search";
-              } else if (route.name === "chat") {
-                iconName = "chatbubble";
-              } else if (route.name === "stats") {
-                iconName = "stats-chart";
-              } else if (route.name === "profile") {
-                iconName = "person";
-              }
+                // Center tab (home) gets special treatment
+                const isMiddleTab =
+                  route.name === "index" || route.name === "scorer-home";
 
-              // Center tab (home) gets special treatment
-              const isMiddleTab = route.name === "index";
+                // Adjust isFocused logic to match original state index with filtered index
+                const actualFocused =
+                  state.routes[state.index].name === route.name;
 
-              return (
-                <TabButton
-                  key={index}
-                  route={route}
-                  isFocused={isFocused}
-                  onPress={onPress}
-                  iconName={iconName as any}
-                  isMiddleTab={isMiddleTab}
-                />
-              );
-            })}
+                return (
+                  <TabButton
+                    key={index}
+                    route={route}
+                    isFocused={actualFocused}
+                    onPress={onPress}
+                    iconName={iconName as any}
+                    isMiddleTab={isMiddleTab}
+                  />
+                );
+              })}
           </View>
         </BlurView>
       </LinearGradient>
@@ -239,6 +254,24 @@ export const screenStyles = StyleSheet.create({
 });
 
 export default function TabLayout() {
+  const { user } = useAuth();
+  const pathname = usePathname();
+
+  // Check if user is authenticated
+  if (!user) {
+    return <Redirect href="/(auth)" />;
+  }
+
+  // Determine if user is a scorer
+  const isScorer = user.role === "scorer";
+
+  // Redirect to appropriate home screen based on role
+  if (isScorer && pathname === "/(tabs)/index") {
+    return <Redirect href="/(tabs)/scorer-home" />;
+  } else if (!isScorer && pathname === "/(tabs)/scorer-home") {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -248,12 +281,41 @@ export default function TabLayout() {
       }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Search",
-        }}
-      />
+      {/* Viewer-only screens */}
+      {!isScorer && (
+        <>
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: "Home",
+            }}
+          />
+          <Tabs.Screen
+            name="search"
+            options={{
+              title: "Search",
+            }}
+          />
+          <Tabs.Screen
+            name="stats"
+            options={{
+              title: "Stats",
+            }}
+          />
+        </>
+      )}
+
+      {/* Scorer-only screens */}
+      {isScorer && (
+        <Tabs.Screen
+          name="scorer-home"
+          options={{
+            title: "Scorer Home",
+          }}
+        />
+      )}
+
+      {/* Common screens for both roles */}
       <Tabs.Screen
         name="chat"
         options={{
@@ -261,21 +323,39 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: "Stats",
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
+        }}
+      />
+
+      {/* Hidden tabs (accessible but not in tab bar) */}
+      <Tabs.Screen
+        name="menu"
+        options={{
+          href: null,
+          title: "Menu",
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          href: null,
+          title: "Social",
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          href: null,
+          title: "Analytics",
+        }}
+      />
+      <Tabs.Screen
+        name="leagues"
+        options={{
+          href: null,
+          title: "Leagues",
         }}
       />
     </Tabs>

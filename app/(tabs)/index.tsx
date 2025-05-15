@@ -2,30 +2,29 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "../../context/LocationContext";
 import { screenStyles } from "./_layout";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 40) / 2;
 
-
-const localStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "black",
-    paddingBottom: 100, // Space for the tab bar
-  },
-});
-
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const {
+    address,
+    loading: locationLoading,
+    getCurrentLocation,
+  } = useLocation();
   const [activeTab, setActiveTab] = useState("Live");
   const [activeCategory, setActiveCategory] = useState("Cricket");
 
@@ -63,6 +62,18 @@ export default function HomeScreen() {
     },
   ];
 
+  // Get user name - either from user object or fallback
+  const getUserName = () => {
+    if (user?.name) return user.name;
+    if (user?.email) return user.email.split("@")[0];
+    return "Sports Fan";
+  };
+
+  // Handle location refresh
+  const handleLocationPress = () => {
+    getCurrentLocation();
+  };
+
   return (
     <SafeAreaView style={screenStyles.container}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -70,9 +81,24 @@ export default function HomeScreen() {
         <View className="flex-row justify-between items-center px-5 py-2">
           <View>
             <Text className="text-gray-400 text-xs">Your Location</Text>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-white font-medium">Hyderabad, India</Text>
-              <Ionicons name="chevron-down" size={16} color="white" />
+            <TouchableOpacity
+              className="flex-row items-center"
+              onPress={handleLocationPress}
+            >
+              {locationLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#FF6B00"
+                  style={{ marginRight: 8 }}
+                />
+              ) : (
+                <>
+                  <Text className="text-white font-medium mr-1">
+                    {address || "Location unavailable"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="white" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
           <TouchableOpacity>
@@ -85,7 +111,7 @@ export default function HomeScreen() {
           <Text className="text-white text-2xl font-bold">
             Hello, <Text className="text-yellow-400">👋</Text>
           </Text>
-          <Text className="text-white text-2xl font-bold">Krishan Mishraa</Text>
+          <Text className="text-white text-2xl font-bold">{getUserName()}</Text>
         </View>
 
         {/* Banner Carousel */}

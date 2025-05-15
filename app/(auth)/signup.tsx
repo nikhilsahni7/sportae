@@ -7,27 +7,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "../../context/AuthContext";
 
-export default function LoginScreen() {
-  const { login } = useAuth();
+export default function SignupScreen() {
+  const { signup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Email validation
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
-  const handleLogin = async () => {
-    // Reset previous errors
+  const handleSignup = async () => {
+    // Reset error
     setError("");
 
-    // Form validation
-    if (!email || !password) {
-      setError("Please enter both email and password");
+    // Validation
+    if (!email || !password || !confirmPassword) {
+      setError("All fields are required");
       return;
     }
 
@@ -37,34 +38,33 @@ export default function LoginScreen() {
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
     setIsLoading(true);
     try {
-      await login(email, password);
-
-      // Redirect to the tabs layout which will determine the correct home screen
+      await signup(email, password);
       router.replace("/(tabs)");
     } catch (error: any) {
       console.error(error);
       if (error.response?.data?.message) {
         setError(error.response.data.message);
       } else {
-        setError("Login failed. Please check your credentials.");
+        setError("Signup failed. Please try again later.");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleScorerLogin = () => {
-    router.push("/scorer-login");
-  };
-
-  const handleSignup = () => {
-    router.push("/signup");
+  const goToLogin = () => {
+    router.push("/login");
   };
 
   return (
@@ -79,17 +79,27 @@ export default function LoginScreen() {
           <View className="absolute inset-0 bg-black/60" />
         </View>
 
-        {/* Logo or App Name - could be added here */}
-        <View className="items-center mt-12">
-          <Text className="text-white text-3xl font-bold">Sportae</Text>
-          <View className="h-1 w-16 bg-orange-500 rounded-full mt-2" />
+        {/* Header with back button */}
+        <View className="px-4 py-4 flex-row items-center">
+          <TouchableOpacity
+            onPress={goToLogin}
+            className="w-10 h-10 items-center justify-center bg-gray-800/50 rounded-full"
+          >
+            <Ionicons name="arrow-back" size={22} color="white" />
+          </TouchableOpacity>
+
+          <View className="items-center flex-1 pr-10">
+            <Text className="text-white text-xl font-semibold">
+              Create Account
+            </Text>
+          </View>
         </View>
 
         {/* Content - Positioned at bottom as in Figma */}
         <View className="px-8 pb-10 mt-auto space-y-6 w-full">
-          <Text className="text-white text-2xl font-bold mb-2">Login</Text>
+          <Text className="text-white text-2xl font-bold mb-2">Sign Up</Text>
           <Text className="text-gray-400 text-base mb-2">
-            Welcome back! Please enter your details
+            Create your account to get started
           </Text>
 
           <View className="space-y-5">
@@ -124,7 +134,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 <TextInput
-                  placeholder="Enter your password"
+                  placeholder="Create your password"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -144,6 +154,42 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            {/* Confirm Password Field */}
+            <View className="space-y-2">
+              <Text className="text-gray-300 text-sm ml-1">
+                Confirm Password
+              </Text>
+              <View className="flex-row items-center bg-gray-800/80 rounded-xl overflow-hidden border border-gray-700">
+                <View className="p-3 px-4">
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={20}
+                    color="#9ca3af"
+                  />
+                </View>
+                <TextInput
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  className="flex-1 p-3.5 text-white"
+                  placeholderTextColor="#9ca3af"
+                />
+                <TouchableOpacity
+                  className="pr-4"
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={20}
+                    color="#9ca3af"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {error ? (
               <View className="bg-red-900/30 border border-red-500/30 rounded-lg p-3">
                 <Text className="text-red-500 text-center">{error}</Text>
@@ -151,35 +197,22 @@ export default function LoginScreen() {
             ) : null}
           </View>
 
-          <View className="mt-4 space-y-5">
+          <View className="mt-4 space-y-6">
             <Button
-              label={isLoading ? "Logging in..." : "Login"}
+              label={isLoading ? "Creating Account..." : "Sign Up"}
               variant="primary"
-              onPress={handleLogin}
+              onPress={handleSignup}
               isLoading={isLoading}
               style={{ height: 56 }}
             />
 
-            <View className="flex-row justify-center items-center mt-3">
-              <Text className="text-gray-400">Don&apos;t have an account?</Text>
-              <TouchableOpacity onPress={handleSignup} className="py-2 px-2">
-                <Text className="text-orange-500 font-medium">Sign Up</Text>
+            <View className="flex-row justify-center items-center">
+              <Text className="text-gray-400">Already have an account?</Text>
+              <TouchableOpacity onPress={goToLogin} className="py-2 px-2">
+                <Text className="text-orange-500 font-medium">Log In</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          <View className="flex-row items-center my-6">
-            <View className="flex-1 h-[1px] bg-gray-700" />
-            <Text className="text-gray-400 mx-4">OR</Text>
-            <View className="flex-1 h-[1px] bg-gray-700" />
-          </View>
-
-          <Button
-            label="Login as Scorer"
-            variant="outline"
-            onPress={handleScorerLogin}
-            style={{ height: 56 }}
-          />
         </View>
       </View>
     </SafeAreaView>
